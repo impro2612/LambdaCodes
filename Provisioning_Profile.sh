@@ -5,7 +5,7 @@
 
 # SSH credentials
 USERNAME="ltadmin"
-PASSWORD="lambdatest123!"
+PASSWORD=".."
 PROFILE_NAME="WildCardResignProfile$1.mobileprovision"
 
 # Shift to ignore $1
