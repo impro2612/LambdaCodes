@@ -1,5 +1,5 @@
 #Fix faulty IOS devices
-#Usgae: host_ip,udid
+#Usage: host_ip,udid
 
 #!/bin/bash
 
@@ -15,7 +15,7 @@ DEVICE_UDID=$(echo "$SCRIPT_PARAMS" | cut -d "," -f 2)
 USERNAME="$SERVER_USER"
 PASSWORD="$SERVER_PASSWORD"
 LOG_FILE="lamda-remote-runner-$DEVICE_UDID.log"
-CONFIG_FILE="/Users/ltadmin/Documents/LambdaRemoteRunner/.lrr.toml"
+TOKEN_FILE="/Users/ltadmin/Documents/Configurator/tokens/token-${DEVICE_UDID}.key"
 
 # Print header
 echo -e "${BLUE}╔══════════════════════════════════════════════════╗"
@@ -42,18 +42,22 @@ sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USERNAME@$HOST_IP" 2>/d
     echo -e "${YELLOW}────────────────────────────────────────────────${NC}"
     sleep 2
 
-    # Check if cfgutil is enabled in .lrr.toml
+    # Check if token file is present or not
     echo "Checking if passcode feature is provided or not..."
     echo -e "${YELLOW}────────────────────────────────────────────────${NC}"
-    if grep -q "cfgutil" "$CONFIG_FILE"; then
 
-        # Section 2: Passcode Clearing (only if cfgutil is present)
-        echo -e "${GREEN}✓ Found cfgutil in LRR config...Attempting to clear passcode...${NC}"
-        RESPONSE=\$(curl -s --location 'localhost:9001/v1.0/device/clearPasscode' \
+    echo "🔍 Checking for token file: $TOKEN_FILE"
+
+    echo -e "${YELLOW}────────────────────────────────────────────────${NC}"
+
+if [[ -f "$TOKEN_FILE" ]]; then
+    echo -e "${GREEN}✓ Token file found. Attempting to clear passcode...${NC}"
+    
+    RESPONSE=\$(curl -s --location 'localhost:9001/v1.0/device/clearPasscode' \
             --header 'Content-Type: application/json' \
             --data "{\"udid\":\"$DEVICE_UDID\"}")
-        
-        if [[ "\$RESPONSE" == *"success"* ]]; then
+
+     if [[ "\$RESPONSE" == *"success"* ]]; then
             echo -e "${GREEN}✓ Passcode cleared successfully${NC}"
         else
             echo -e "${RED}✖ ERROR: API Response: \$RESPONSE${NC}"
@@ -62,7 +66,7 @@ sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USERNAME@$HOST_IP" 2>/d
 
         echo -e "${YELLOW}────────────────────────────────────────────────${NC}"
     else
-        echo -e "⚠ cfgutil not found in LRR config. Skipping passcode clear."
+        echo -e "⚠ Token file not found. . Skipping passcode clear."
         echo -e "${YELLOW}────────────────────────────────────────────────${NC}"
     fi
 
@@ -101,12 +105,12 @@ sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USERNAME@$HOST_IP" 2>/d
     sleep 150
     
     echo "Checking device status in LRR logs..."
-    if tail -n 5 "$LOG_FILE" | grep -q 'lt-app response status code  -> 200'; then
+    if tail -n 10 "$LOG_FILE" | grep -q 'lt-app response status code  -> 200'; then
         echo -e "${GREEN}✓ DEVICE IS ACTIVE: Status 200 found in logs${NC}"
     else
         echo -e "${YELLOW}⚠ WARNING: Device active status not confirmed in logs${NC}"
-        echo -e "${RED}Last 3 log lines:"
-        tail -n 3 "$LOG_FILE"
+        echo -e "${RED}Last 10 log lines:"
+        tail -n 10 "$LOG_FILE"
         echo -e "${NC}"
     fi
 EOF
